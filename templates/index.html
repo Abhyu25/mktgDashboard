@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Analysis Dashboard</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            color: #333;
+        }
+        .chart-container {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .chart-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .tooltip {
+            position: absolute;
+            padding: 10px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            pointer-events: none;
+            font-size: 0.9em;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Market Analysis Dashboard</h1>
+
+    <div class="chart-container" id="market-share-chart">
+        <h2 class="chart-title">Market Share</h2>
+        <div id="bar-chart"></div>
+    </div>
+
+    <div class="chart-container" id="revenue-trends-chart">
+        <h2 class="chart-title">Revenue Trends (Quarterly)</h2>
+        <div id="line-chart"></div>
+    </div>
+
+    <div class="chart-container" id="market-segmentation-chart">
+        <h2 class="chart-title">Market Segmentation</h2>
+        <div id="bubble-chart"></div>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        // Tooltip setup (for all charts)
+        const tooltip = d3.select("#tooltip");
+
+        function showTooltip(event, text) {
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            tooltip.html(text)
+                .style("left", (event.pageX) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        }
+
+        function hideTooltip() {
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        }
+
+        // --- Market Share Bar Chart ---
+        fetch('/api/marketShare')
+            .then(response => response.json())
+            .then(data => {
+                const margin = {top: 20, right: 30, bottom: 40, left: 90},
+                      width = 500 - margin.left - margin.right,
+                      height = 400 - margin.top - margin.bottom;
+
+                const svgBar = d3.select("#bar-chart")
+                    .append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+                const xBar = d3.scaleBand()
+                    .range([ 0, width ])
+                    .domain(data.map(d => d.company))
+                    .padding(0.2);
+                svgBar.append("g")
+                    .attr("transform", `translate(0,${height})`)
+                    .call(d3.axisBottom(xBar))
+                    .selectAll("text")
+                        .style("text-anchor", "middle");
+
+                const yBar = d3.scaleLinear()
+                    .domain([0, d3.max(data, d => d.marketShare)])
+                    .range([ height, 0]);
+                svgBar.append("g")
+                    .call(d3.axisLeft(yBar));
+
+                svgBar.selectAll("rect")
+                    .data(data)
+                    .enter()
+                    .append("rect")
+                        .attr("x", d => xBar(d.company))
+                        .attr("y", d => yBar(d.marketShare))
+                        .attr("width", xBar.bandwidth())
+                        .attr("height", d => height - yBar(d.marketShare))
+                        .attr("fill", "#5cb85c")
+                    .on("mouseover", function (event, d) {
+                        showTooltip(event, `${d.company}<br>Market Share: ${d.marketShare.toFixed(1)}%`);
+                        d3.select(this).attr('fill', '#4cae4c');
+                    })
+                    .on("mouseout", function (event, d) {
+                        hideTooltip();
+                        d3.select(this).attr('fill', '#5cb85c');
+                    });
+
+                 // Animation
+                svgBar.selectAll("rect")
+                    .transition()
+                    .duration(800)
+                    .attr("y", d => yBar(d.marketShare))
+                    .attr("height", d => height - yBar(d.marketShare))
+                    .delay((d,i) => i*100)
+            });
+
+        // --- Revenue Trends Line Chart ---
+        fetch('/api/revenueTrends')
+            .then(response => response.json())
+            .then(companies => {
+                const marginLine = {top: 20, right: 30, bottom: 50, left: 60},
+                      widthLine = 550 - marginLine.left - marginLine.right,
+                      heightLine = 400 - marginLine.top - marginLine.bottom;
+
+                const svgLine = d3.select("#line-chart")
+                    .append("svg")
+                        .attr("width", widthLine + marginLine.left + marginLine.right)
+                        .attr("height", heightLine + marginLine.top + marginLine.bottom)
+                    .append("g")
+                        .attr("transform", `translate(${marginLine.left},${marginLine.top})`);
+
+                const quarters = companies[0].quarterlyRevenue.map(q => q.quarter);
+                const xLine = d3.scalePoint()
+                    .domain(quarters)
+                    .range([0, widthLine]);
+                svgLine.append("g")
+                    .attr("transform", `translate(0, ${heightLine})`)
+                    .call(d3.axisBottom(xLine));
+
+                const yLine = d3.scaleLinear()
+                    .domain([0, d3.max(companies, c => d3.max(c.quarterlyRevenue, r => r.revenue))])
+                    .range([heightLine, 0]);
+                svgLine.append("g")
+                    .call(d3.axisLeft(yLine));
+
+                const colorLine = d3.scaleOrdinal()
+                    .domain(companies.map(c => c.company))
+                    .range(d3.schemeCategory10);
+
+                companies.forEach(company => {
+                    const line = d3.line()
+                        .x(d => xLine(d.quarter))
+                        .y(d => yLine(d.revenue));
+
+                    svgLine.append("path")
+                        .datum(company.quarterlyRevenue)
+                        .attr("fill", 'none')
+                        .attr("stroke", colorLine(company.company))
+                        .attr("stroke-width", 2.0)
+                        .attr("d", line)
+                     .on("mouseover", function(event, d){
+                        showTooltip(event, company.company);
+                        d3.select(this)
+                          .style("stroke-width", 5);
+                      })
+                     .on("mouseout", function(event, d){
+                        hideTooltip();
+                        d3.select(this)
+                          .style("stroke-width", 2.0);
+                      });
+                });
+
+                // Animation for lines on load
+                svgLine.selectAll("path")
+                    .style("stroke-dasharray", function() { return this.getTotalLength(); })
+                    .style("stroke-dashoffset", function() { return this.getTotalLength(); })
+                    .transition()
+                    .duration(2000)
+                    .ease(d3.easeCubicInOut)
+                    .style("stroke-dashoffset", 0);
+
+                // Add legend
+                const legendLine = svgLine.selectAll(".legend")
+                    .data(companies)
+                    .enter().append("g")
+                    .attr("class", "legend")
+                    .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+                legendLine.append("rect")
+                    .attr("x", widthLine - 18)
+                    .attr("width", 18)
+                    .attr("height", 18)
+                    .style("fill", d => colorLine(d.company));
+
+                legendLine.append("text")
+                    .attr("x", widthLine - 24)
+                    .attr("y", 9)
+                    .attr("dy", ".35em")
+                    .style("text-anchor", "end")
+                    .text(d => d.company);
+
+            });
+
+
+        // --- Market Segmentation Bubble Chart ---
+        fetch('/api/marketSegmentation')
+            .then(response => response.json())
+            .then(data => {
+                const marginBubble = {top: 20, right: 20, bottom: 40, left: 60},
+                      widthBubble = 500 - marginBubble.left - marginBubble.right,
+                      heightBubble = 400 - marginBubble.top - marginBubble.bottom;
+
+                const svgBubble = d3.select("#bubble-chart")
+                    .append("svg")
+                        .attr("width", widthBubble + marginBubble.left + marginBubble.right)
+                        .attr("height", heightBubble + marginBubble.top + marginBubble.bottom)
+                    .append("g")
+                        .attr("transform", `translate(${marginBubble.left},${marginBubble.top})`);
+
+                const xBubble = d3.scaleLinear()
+                    .domain([0, d3.max(data, d => d.growthRate)])
+                    .range([ 0, widthBubble ]);
+                svgBubble.append("g")
+                    .attr("transform", `translate(0, ${heightBubble})`)
+                    .call(d3.axisBottom(xBubble).tickFormat(d3.format(".0%")));
+                 svgBubble.append("text")
+                    .attr("transform", `translate(${widthBubble/2}, ${heightBubble + marginBubble.bottom - 5})`)
+                    .style("text-anchor", "middle")
+                    .text("Growth Rate");
+
+                const yBubble = d3.scaleLinear()
+                    .domain([0, d3.max(data, d => d.revenue)])
+                    .range([ heightBubble, 0]);
+                svgBubble.append("g")
+                    .call(d3.axisLeft(yBubble));
+                 svgBubble.append("text")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 0 - marginBubble.left)
+                    .attr("x",0 - (heightBubble / 2))
+                    .attr("dy", "1em")
+                    .style("text-anchor", "middle")
+                    .text("Revenue");
+
+                const zBubble = d3.scaleLinear()
+                    .domain([0, d3.max(data, d => d.revenue)])
+                    .range([ 5, 30]);
+
+                const colorBubble = d3.scaleOrdinal()
+                    .domain(data.map(d => d.segment))
+                    .range(d3.schemeSet2);
+
+
+                svgBubble.append('g')
+                    .selectAll("dot")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                        .attr("cx", d => xBubble(d.growthRate))
+                        .attr("cy", d => yBubble(d.revenue))
+                        .attr("r", d => zBubble(d.revenue))
+                        .style("fill", d => colorBubble(d.segment))
+                        .style("opacity", "0.7")
+                        .attr("stroke", "black")
+                    .on("mouseover", function(event, d) {
+                        showTooltip(event, `${d.segment}<br>Revenue: ${d.revenue.toFixed(1)}<br>Growth: ${d.growthRate.toFixed(1)}%`);
+                        d3.select(this)
+                          .style("stroke-width", 2)
+                          .style("opacity", 1);
+                      })
+                    .on("mouseout", function(event, d) {
+                        hideTooltip();
+                        d3.select(this)
+                          .style("stroke-width", 1)
+                          .style("opacity", 0.7);
+                      });
+
+                // Animation for bubbles on load
+                svgBubble.selectAll("circle")
+                    .transition()
+                    .duration(1000)
+                    .attr("r", d => zBubble(d.revenue))
+                    .delay((d,i) => i*50);
+
+                 // Add legend for bubbles (segment colors)
+                const legendBubble = svgBubble.selectAll(".legend")
+                    .data(colorBubble.domain())
+                    .enter().append("g")
+                    .attr("class", "legend")
+                    .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+                legendBubble.append("rect")
+                    .attr("x", widthBubble - 18)
+                    .attr("width", 18)
+                    .attr("height", 18)
+                    .style("fill", colorBubble);
+
+                legendBubble.append("text")
+                    .attr("x", widthBubble - 24)
+                    .attr("y", 9)
+                    .attr("dy", ".35em")
+                    .style("text-anchor", "end")
+                    .text(d => d); // d is segment name from color domain
+
+            });
+
+    </script>
+</body>
+</html>
