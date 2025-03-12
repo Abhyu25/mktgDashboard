@@ -1,0 +1,18 @@
+[
+  {
+    "company": "Beta Inc",
+    "marketShare": 40.5
+  },
+  {
+    "company": "Alpha Corp",
+    "marketShare": 24.8
+  },
+  {
+    "company": "Gamma LLC",
+    "marketShare": 20.1
+  },
+  {
+    "company": "Delta Co",
+    "marketShare": 14.6
+  }
+]
