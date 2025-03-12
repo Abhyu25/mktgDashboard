@@ -1,0 +1,105 @@
+/* static/styles.css */
+
+/* General Body and Typography */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern, clean font */
+    margin: 0; /* Reset default margin */
+    padding: 0; /* Reset default padding */
+    background-color: #f8f9fa; /* Very light grey background */
+    color: #495057; /* Dark grey text */
+    line-height: 1.6; /* Improved line spacing for readability */
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #343a40; /* Even darker grey for headings */
+    font-weight: bold;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+h1 {
+    font-size: 2.5rem;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h2.chart-title {
+    font-size: 1.75rem;
+    text-align: center;
+    color: #343a40;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dee2e6; /* Light border under chart titles */
+}
+
+/* Chart Container Styling */
+.chart-container {
+    margin: 20px auto; /* Center containers on the page */
+    padding: 25px;
+    background-color: #fff; /* White background for chart areas */
+    border-radius: 8px; /* Slightly rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* Subtle shadow for depth */
+    transition: box-shadow 0.3s ease; /* Smooth shadow transition on hover */
+    max-width: 90%; /* Ensure it doesn't get too wide on large screens */
+}
+
+.chart-container:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Slightly stronger shadow on hover */
+}
+
+/* Tooltip Styling */
+.tooltip {
+    position: absolute;
+    padding: 12px;
+    background-color: rgba(255, 255, 255, 0.95); /* White with slight transparency */
+    border: 1px solid #ced4da; /* Light grey border */
+    border-radius: 5px;
+    pointer-events: none;
+    font-size: 0.9rem;
+    color: #212529; /* Very dark grey for tooltip text */
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); /* Subtle shadow for tooltip */
+    opacity: 0; /* Initially hidden */
+    transition: opacity 0.2s ease-in-out; /* Smooth opacity transition */
+}
+
+/* D3 Chart Specific Styles (adjust as needed for your charts) */
+svg {
+    display: block; /* Make SVG behave like a block element for layout */
+    margin: 20px auto; /* Center SVG charts within their containers */
+    max-width: 100%; /* Responsive width */
+    height: auto; /* Maintain aspect ratio */
+}
+
+/* Example styling for bars in the bar chart (you can adjust colors) */
+rect {
+    fill: #28a745; /* Bootstrap-like green for bars, a bit brighter than original #5cb85c */
+}
+
+rect:hover {
+    fill: #218838; /* Darker green on hover */
+}
+
+/* Line chart line color example (you can adjust colors in JS for different lines) */
+path.line {
+    fill: none;
+    stroke-width: 2;
+    stroke: #007bff; /* Bootstrap-like blue for lines */
+}
+
+/* Bubble chart bubble color example (you can adjust colors in JS for different bubbles) */
+circle {
+    fill-opacity: 0.7;
+    stroke: #6c757d; /* Grey stroke for bubbles */
+    stroke-width: 1;
+}
+
+/* Legend styling (if you add legends to your charts) */
+.legend {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.legend rect {
+    stroke: none;
+    shape-rendering: crispEdges; /* Optional: for sharper edges on legend rectangles */
+}
